@@ -1,7 +1,9 @@
 const express = require('express');
 const app = express();
 
-const phonebook = [
+app.use(express.json())
+
+let phonebook = [
   { 
     "id": 1,
     "name": "Arto Hellas", 
@@ -26,6 +28,41 @@ const phonebook = [
 
 app.get('/api/persons', (request, response) => {
   response.json(phonebook)
+})
+
+app.get('/info', (request, response) => {
+  // const info = {
+  //   content: `Phonebook has info for ${phonebook.length} people`,
+  //   date: new Date(),
+  // }
+  // response.writeHead(200, { 'Content-Type': 'text/html' })
+  // response.set('Content-Type', 'text/html')
+  response.write(`<p>Phonebook has info for ${phonebook.length} people<p>`);
+  response.write(`<p>${new Date()}</p>`);
+  response.end()
+  // response.end(info.date);
+})
+
+app.get('/api/persons/:id', (request, response) => {
+  const id = request.params.id; 
+  const phone = phonebook.find(item => item.id === Number(id));
+  phone ? response.json(phone)
+  : response.status(404).send(`<h1>Error 404 Page is not found</h1>`)
+})
+
+app.delete('/api/persons/:id', (req, res) => {
+  const id = req.params.id;
+  phonebook = phonebook.filter(item => item.id !== Number(id));
+  res.status(204).end('Error 204 no content');
+  console.log(phonebook);
+})
+
+app.post('/api/persons', (req, res) => {
+  const newPhonebook = {
+    id: Math.round(Math.random() * 1000),
+
+
+  }
 })
 
 const PORT = 3001;
