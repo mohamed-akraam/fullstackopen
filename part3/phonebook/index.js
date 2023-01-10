@@ -1,6 +1,10 @@
+require('dotenv').config()
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
+
+const Persons = require('./module/mongo');
+
 const app = express();
 
 app.use(cors());
@@ -38,40 +42,13 @@ app.use(morgan((tokens, req, res) => {
   }
 }))
 
-let phonebook = [
-  {
-    id: 1,
-    name: 'Arto Hellas',
-    number: '040-123456',
-  },
-  {
-    id: 2,
-    name: 'Ada Lovelace',
-    number: '39-44-5323523',
-  },
-  {
-    id: 3,
-    name: 'Dan Abramov',
-    number: '12-43-234345',
-  },
-  {
-    id: 4,
-    name: 'Mary Poppendieck',
-    number: '39-23-6423122',
-  },
-];
-
 app.get('/api/persons', (request, response) => {
-  response.json(phonebook);
+  Persons.find({}).then(persons => {
+    response.json(persons);
+  })
 });
 
 app.get('/info', (request, response) => {
-  // const info = {
-  //   content: `Phonebook has info for ${phonebook.length} people`,
-  //   date: new Date(),
-  // }
-  // response.writeHead(200, { 'Content-Type': 'text/html' })
-  // response.set('Content-Type', 'text/html')
   response.write(`<p>Phonebook has info for ${phonebook.length} people<p>`);
   response.write(`<p>${new Date()}</p>`);
   response.end();
@@ -94,22 +71,33 @@ app.delete('/api/persons/:id', (req, res) => {
 });
 
 app.post('/api/persons', (req, res) => {
-  const phone = {
-    id: Math.round(Math.random() * 10000),
-    name: req.body.name,
-    number: req.body.number,
-  };
-  if (!phone.name || !phone.number) {
-    res.status(400).json({ error: 'content is missing' });
-  } else if (phonebook.some((item) => item.name === phone.name)) {
-    res.status(409).json({ error: 'name must be unique' });
-  } else {
 
-    res.json(phonebook.concat(phone));
+  const body = req.body;
+
+  if(!body.name || !body.number) {
+    return res.status(404).json({ error: "content missing" })
   }
+
+  const phone = new Persons({
+    name: body.name,
+    number: body.number,
+  });
+
+  phone.save().then(savedPerson => {
+    res.json(savedPerson)
+  })
+
+  // if (!phone.name || !phone.number) {
+  //   res.status(400).json({ error: 'content is missing' });
+  // } else if (phonebook.some((item) => item.name === phone.name)) {
+  //   res.status(409).json({ error: 'name must be unique' });
+  // } else {
+
+  //   res.json(phonebook.concat(phone));
+  // }
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`listening in port ${PORT}`);
 });
