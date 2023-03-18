@@ -6,7 +6,7 @@ const Persons = require('./models/mongo');
 
 
 const app = express();
-
+app.use(express.static('build'));
 app.use(cors());
 app.use(express.json());
 // app.use(morgan('tiny'));
@@ -20,6 +20,14 @@ app.use(express.json());
 //   tokens['response-time'](req, res), 'ms',
 //   ].join(' ')
 // }
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('client/build'));
+  app.get('*', (req, res) => {
+    let filePath = path.resolve(__dirname, '/build', 'index.html');        
+    res.sendFile(filePath);
+  });
+}
 
 app.use(morgan((tokens, req, res) => {
   const log = [
@@ -96,39 +104,43 @@ app.delete('/api/persons/:id', (req, res, next) => {
 });
 
 app.put('/api/persons/:id', (req, res, next) => {
-  const body = req.body;
+  const { name, number } = req.body;
   // console.log(req);
-  console.log(body.name, body.number, body);
-  console.log(body, 'hello there');
 
   const person = {
     name: body.name,
     number: body.number,
   }
 
-  Persons.findByIdAndUpdate(req.params.id, person, { new: true })
+  Persons.findByIdAndUpdate(
+    req.params.id, 
+    { name, number },
+    { new: true , runValidators: true, context: 'query'}
+    )
     .then(updatedPerson => {
       res.json(updatedPerson)
     })
     .catch(err => next(err))
 })
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
 
   const body = req.body;
 
-  if(!body.name || !body.number) {
-    return res.status(404).json({ error: "content missing" })
-  }
+  // if(!body.name || !body.number) {
+  //   return res.status(404).json({ error: "content missing" })
+  // }
 
   const phone = new Persons({
     name: body.name,
     number: body.number,
   });
 
-  phone.save().then(savedPerson => {
-    res.json(savedPerson)
-  })
+  phone.save()
+    .then(savedPerson => {
+      res.json(savedPerson)
+    })
+    .catch(err => next(err))
 
   // if (!phone.name || !phone.number) {
   //   res.status(400).json({ error: 'content is missing' });
@@ -144,12 +156,15 @@ app.post('/api/persons', (req, res) => {
 app.use(unknownEndPoint);
 
 const errorHandler = (err, req, res, next) => {
-  console.log(err);
-  console.log(err.message);
-  console.log(err.name);
+  // console.log(err);
+  // console.log(err.message);
+  // console.log(err.name);
   if (err.name === 'CastError') {
-    res.status(400).send({ error: 'malforamtted id' });
+    return res.status(400).send({ error: 'malforamtted id' });
+  } else if (err.name === 'ValidationError') {
+    return res.status(400).json({ err: err.message })
   }
+  
   next();
 }
 

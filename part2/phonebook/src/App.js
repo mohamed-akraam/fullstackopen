@@ -40,7 +40,8 @@ const App = () => {
       return newObject.slice(0);
     }
 
-    personService.create(newObject[0]).then((returnedPerson) => {
+    personService.create(newObject[0])
+      .then((returnedPerson) => {
 
       setMessage(`Added ${returnedPerson.name}`)
       setTimeout(() => {
@@ -50,7 +51,15 @@ const App = () => {
       setPersons(persons.concat(returnedPerson));
       setNewName("");
       setNewNumber("");
-    });
+    })
+    .catch(err => {
+      setErrorMessage(err.response.data.err);
+      setTimeout(() => {
+        setErrorMessage(null)
+      }, 5000)
+      console.log(err);
+      console.log(err.response.data.err);
+    })
   };
 
   const deleteName = (id, name) => {
