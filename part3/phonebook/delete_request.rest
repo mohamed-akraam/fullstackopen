@@ -1,7 +1,16 @@
-DELETE http://localhost:3000/api/persons/1
+DELETE http://localhost:3001/api/persons/63bdf3724fdc9736e5aea6ea
 
 ###
-POST http://localhost:3000/api/persons/6
+POST http://localhost:3001/api/persons
+Content-Type: application/json
+
+{
+  "name": "Galaktik",
+  "number": "023423435"
+}
+
+###
+PUT http://localhost:3001/api/persons/640e7a0df3f4f0a648936c4c
 Content-Type: application/json
 
 {

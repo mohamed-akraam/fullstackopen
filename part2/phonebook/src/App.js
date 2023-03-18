@@ -105,6 +105,8 @@ const App = () => {
         valueNumber={newNumber}
         onChaneNumber={handleNumberChange}
       />
+      
+      <button>update</button>
 
       <h3>Numbers</h3>
 
