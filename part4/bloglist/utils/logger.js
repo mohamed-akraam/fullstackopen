@@ -1,10 +1,6 @@
-const info = (log) => {
-  return console.log(log)
-}
+const info = (log) => console.log(log);
 
-const error = (err) => {
-  return console.error(err)
-}
+const error = (err) => console.error(err);
 
 module.exports = {
   info,
