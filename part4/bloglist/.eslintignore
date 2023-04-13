@@ -2,3 +2,4 @@ node_modules
 build
 tests/helper.test.js
 utils/config.js
+tests/helper.js
