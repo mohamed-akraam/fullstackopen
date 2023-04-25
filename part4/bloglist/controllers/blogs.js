@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable prefer-destructuring */
 const blogRouter = require('express').Router();
 const jwt = require('jsonwebtoken');
@@ -32,7 +33,6 @@ blogRouter.post('/', async (request, response) => {
 
   const savedBlog = await newBlog.save();
 
-  // eslint-disable-next-line no-underscore-dangle
   user.blogs = user.blogs.concat(savedBlog.id);
   await user.save();
 
@@ -40,8 +40,22 @@ blogRouter.post('/', async (request, response) => {
 });
 
 blogRouter.delete('/:id', async (request, response) => {
-  await Blog.findByIdAndRemove(request.params.id);
-  response.status(204).end();
+  const decodedToken = jwt.verify(request.token, process.env.SECRET);
+
+  if (!decodedToken.id) {
+    return response.status(400).json({ error: 'token invalid' });
+  }
+  const blog = await Blog.findById(request.params.id);
+  const user = await User.findById(decodedToken.id);
+
+  const userid = user._id;
+
+  if ((blog.user.toString() === userid.toString()) || blog.user.length === 0) {
+    await Blog.findByIdAndRemove(request.params.id);
+    return response.status(204).end();
+  }
+
+  return response.status(403).json({ error: 'not authorized to delete' });
 });
 
 blogRouter.put('/:id', async (request, response) => {
