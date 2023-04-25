@@ -1,8 +1,10 @@
 const listHelper = require('../utils/list_helper');
-const { initialBlog, blogsInDb } = require('./helper')
+const { initialBlog, blogsInDb, usersInDb } = require('./helper')
 const supertest = require('supertest');
 const app = require('../app');
 const Blog = require('../models/blog');
+const User = require('../models/user');
+const bcrypt = require('bcrypt');
 const mongoose = require('mongoose');
 const api = supertest(app);
 
@@ -173,6 +175,40 @@ test('updating an individual blog', async () => {
 
   expect(filteredId.likes).not.toEqual(firstBlog.likes);
 });
+
+describe('there\'s only a single user in DB', () => {
+  beforeEach(async () => {
+    await User.deleteMany({});
+
+    const passwordHash = await bcrypt.hash('sekret', 10);
+    const user = new User({username: 'root', passwordHash})
+
+    await user.save();
+  })
+
+  test('validation error cuz of min allowed length', async () => {
+    const userAtStart = await usersInDb();
+
+    const newUser = {
+      username: 'saala',
+      password: 'so',
+      name: 'Galaktik'
+    }
+
+
+    await api
+        .post('/api/users')
+        .send(newUser)
+        .expect(400)
+    
+    const userAtEnd = await usersInDb();
+
+    console.log(userAtStart, userAtEnd);
+
+    expect(userAtStart.length).toEqual(userAtEnd.length)
+    
+  })
+})
 
 afterAll(async () => {
   await mongoose.connection.close();

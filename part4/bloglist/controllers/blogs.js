@@ -1,10 +1,12 @@
 /* eslint-disable prefer-destructuring */
 const blogRouter = require('express').Router();
+const jwt = require('jsonwebtoken');
 const Blog = require('../models/blog');
+const User = require('../models/user');
 const { info } = require('../utils/logger');
 
 blogRouter.get('/', async (request, response) => {
-  const blog = await Blog.find({});
+  const blog = await Blog.find({}).populate('user', { username: 1, name: 1, id: 1 });
   response.status(200).json(blog);
 });
 
@@ -12,21 +14,29 @@ blogRouter.get('/', async (request, response) => {
 blogRouter.post('/', async (request, response) => {
   const body = request.body;
 
-  try {
-    const blog = new Blog({
-      title: body.title,
-      author: body.author,
-      url: body.url,
-      likes: body.likes || 0,
-    });
+  const decodedToken = jwt.verify(request.token, process.env.SECRET);
 
-    const savedBlog = await blog.save();
-    response.status(201).json(savedBlog);
-  } catch (error) {
-    if (error.name === 'ValidationError') {
-      return response.status(400).json({ error: error.message });
-    }
+  if (!decodedToken.id) {
+    return response.status(400).json({ error: 'token invalid' });
   }
+
+  const user = await User.findById(decodedToken.id);
+
+  const newBlog = new Blog({
+    title: body.title,
+    author: body.author,
+    url: body.url,
+    likes: body.likes || 0,
+    user: user.id,
+  });
+
+  const savedBlog = await newBlog.save();
+
+  // eslint-disable-next-line no-underscore-dangle
+  user.blogs = user.blogs.concat(savedBlog.id);
+  await user.save();
+
+  response.json(savedBlog);
 });
 
 blogRouter.delete('/:id', async (request, response) => {
