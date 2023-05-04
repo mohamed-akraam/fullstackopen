@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Blog from './components/Blog';
 import blogService from './services/blogs';
 import loginService from './services/login';
+import Notification from './components/Notification';
 
 const App = () => {
   const [blogs, setBlogs] = useState([]);
@@ -12,11 +13,14 @@ const App = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [user, setUser] = useState(null);
+  const [message, setMessage] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
-    blogService.getAll().then(blogs =>
-      setBlogs( blogs )
-    )  
+    blogService.getAll().then(blogs => {
+      console.log(blogs);
+      return setBlogs( blogs )
+  })
   }, [])
 
   useEffect(() => {
@@ -24,12 +28,12 @@ const App = () => {
     if (loggedUserJSON) {
       const user = JSON.parse(loggedUserJSON);
       setUser(user);
+      blogService.setToken(user.token);
     }
   }, [])
 
   const handleLogin = async (event) => {
     event.preventDefault();
-    console.log('user is logged in', username, password);
 
     try {
       const user = await loginService.login({
@@ -39,13 +43,18 @@ const App = () => {
       window.localStorage.setItem('loggedUser', JSON.stringify(user));
 
       setUser(user);
-      // console.log(user);
+      blogService.setToken(user.token)
+      console.log(user);
       setUsername('');
       setPassword('');
 
     } catch (exceptions) {
-      console.error('Wrong credentials')
+      console.error('Wrong credentials');
       console.log(exceptions);
+      setErrorMessage('Wrong username or password');
+      setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
     }
   }
 
@@ -89,8 +98,24 @@ const App = () => {
     window.localStorage.removeItem('loggedUser');
   }
 
-  const addBlog = (event) => {
+  const addBlog = async (event) => {
     event.preventDefault();
+    const createdBlog = {
+      title: title,
+      author: author,
+      url: url,
+    }
+    if (createdBlog.title !== '' || createdBlog.author !== '' || createdBlog.url !== '') {
+      const savedBlog = await blogService.create(createdBlog);
+      setBlogs(blogs.concat(savedBlog));
+      setTitle('');
+      setAuthor('');
+      setUrl('');
+      setMessage(`A new added Blog ${createdBlog.title} ${createdBlog.author}`);
+      setTimeout(() => {
+        setMessage(null)
+      }, 5000)
+    }
   }
 
   const noteForm = () => (
@@ -135,6 +160,7 @@ const App = () => {
   if (user === null) {
     return (
       <div>
+        <Notification notification={errorMessage} className="error" />
         <h1>log in to application</h1>
         {loginForm()}
       </div>
@@ -144,6 +170,7 @@ const App = () => {
   return (
     <div>
       <h2>User</h2>
+      <Notification notification={message} className="success"  />
       <div>
         <p>{user.name} logged in</p>
         <button onClick={logout}>logout</button>
